@@ -5,38 +5,22 @@
 --- produced.
 ---
 --- Run from the archetype repo root (uses ./prova.toml):   prova
---- requires archetect; skips cleanly without it. There is nothing to build or boot - the overlay
---- carries no code.
----
---- Rendering shells out to the `archetect` CLI (one fresh process per render) rather than the
---- in-process `archetect.render`, which can only render once per process.
+--- There is nothing to build or boot - the overlay carries no code.
 
-local SRC = "."   -- shell.run inherits prova's cwd (the repo root), where the archetype lives
+local SRC = "."
 
-local function answers_yaml()
-  return table.concat({
-    'author_name: "Test Author"',
-    'author_email: "test@example.com"',
-    'org_name: "acme"',
-    'solution_name: "platform"',
-    'prefix_name: "Example"',
-    'suffix_name: "Service"',
-    'image_registry: "ghcr.io/acme"',
-    'persistence: "None"',
-  }, "\n") .. "\n"
-end
+local ANSWERS = {
+  author_name    = "Test Author",
+  author_email   = "test@example.com",
+  org_name       = "acme",
+  solution_name  = "platform",
+  prefix_name    = "Example",
+  suffix_name    = "Service",
+  image_registry = "ghcr.io/acme",
+  persistence    = "None",
+}
 
--- The overlay renders in place at the destination root - there is no project-name subdirectory.
-local function render(ctx)
-  local out     = ctx:tempdir()
-  local answers = out .. "/answers.yaml"
-  fs.write(answers, answers_yaml())
-  shell.run("archetect render " .. SRC .. " " .. out .. "/rendered -A " .. answers .. " -D --headless",
-    { timeout = "180s", check = true })
-  return out .. "/rendered"
-end
-
--- The platform/servicing files the overlay must produce.
+-- The platform/servicing files the overlay must produce (rendered in place at the destination root).
 local EXPECTED_FILES = {
   ".editorconfig",
   ".gitattributes",
@@ -58,29 +42,11 @@ local ABSENT_FILES = {
   "example-service-server/pom.xml",
 }
 
-local project = prova.fixture("java-empty:project", Scope.File, function(ctx)
-  return render(ctx)
-end)
-
-prova.group("java-empty", { requires = { "archetect" } }, function(g)
-  g:test("renders the platform overlay in place", function(t)
-    local root = t:use(project)
-    t:expect_all(function()
-      for _, f in ipairs(EXPECTED_FILES) do
-        t:expect(fs.exists(root .. "/" .. f), f):is_true()
-      end
-      for _, f in ipairs(ABSENT_FILES) do
-        t:expect(fs.exists(root .. "/" .. f), f .. " (should be absent)"):is_false()
-      end
-    end)
-  end)
-
-  g:test("platform kubernetes manifests parse", function(t)
-    local root = t:use(project)
-    local matches = fs.glob(root, ".platform/kubernetes/**/*.yaml")
-    t:expect(#matches, "kubernetes manifests"):never():equals(0)
-    for _, path in ipairs(matches) do
-      yaml.parse_all(fs.read(path))
-    end
-  end)
-end)
+archetect.verify{
+  name = "java-empty",
+  source = SRC,
+  answers = ANSWERS,
+  expected_files = EXPECTED_FILES,
+  absent_files = ABSENT_FILES,
+  yaml_globs = { ".platform/kubernetes/**/*.yaml" },
+}
