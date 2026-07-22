@@ -1,8 +1,7 @@
 # Prova acceptance tests: `prova` from the repo root runs the whole suite.
 [run]
-paths = ["tests"]
+proofs = ["tests"]
 
 # CI runs the same suite; the suite only renders and inspects files, so it needs no special tooling.
 [profiles.ci]
-paths = ["tests"]
 format = "json"
