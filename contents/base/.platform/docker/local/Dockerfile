@@ -1,10 +1,13 @@
 # local/Dockerfile — used with `kind load docker-image` for local cluster development
 # Builder stage
-FROM eclipse-temurin:21-jdk AS builder
+# A pinned Maven+JDK image rather than the project's ./mvnw: this overlay retrofits an EXISTING
+# application and cannot assume it carries the wrapper, and the pinned image keeps the toolchain
+# reproducible either way. Matches what the java service archetypes build with.
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /workspace
 
 COPY . .
-RUN ./mvnw -pl {{ project-name }}-server -am -q -DskipTests package
+RUN mvn -q -B -pl {{ project-name }}-server -am -DskipTests package
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine AS runtime
