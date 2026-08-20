@@ -1,4 +1,4 @@
-description: "Java Service Platform Overlay"
+description: "Java Retrofit Overlay"
 authors: ["Jimmie Fulton <jimmie@ybor.ai>"]
 languages: ["Java"]
 frameworks: ["Spring Boot", "Spring MVC"]

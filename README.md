@@ -1,6 +1,6 @@
 # java-service-empty-archetype
 
-Java **Service Platform Overlay** — generates only the platform *servicing layer* for a
+Java **Retrofit Overlay** — generates only the platform *servicing layer* for a
 service and nothing else. Run it against an **existing** Java (Maven multi-module) project
 to retrofit it with:
 
