@@ -25,12 +25,11 @@ context:page({ title = "Project", key = "project",
         -- which is what lets Shared resources be shared across a solution and environment.
         identity.prompt_solution(ctx)
 
-        -- Where CI publishes the image to. No default — registry hostnames are company-specific.
-        ctx:prompt_text("Image Registry:", "image_registry", {
-            placeholder = "ghcr.io",
-            help        = "Container image registry hostname (e.g. ghcr.io, "
-                .. "123456789.dkr.ecr.us-east-1.amazonaws.com).",
-        })
+        -- The registry prompt comes from the manifests library, the same as every other shape.
+        -- It used to be a second copy here, and the copies drifted: this one carried a `ghcr.io`
+        -- placeholder while the library's said `registry.example.com`, so a placeholder-driven
+        -- form filler produced different values for the same field depending on the flavor.
+        require("platform-application-manifests").prompt_registry(ctx)
     end)
 
     ctx:section({ title = "Service", key = "service",
@@ -60,10 +59,18 @@ context:page({ title = "Container Build", key = "container_build",
         help    = "Built inside the builder image, from the repo root.",
     })
 
+    -- OPTIONAL with a placeholder, like every other overlay: blank means the
+    -- conventional value. Half the overlays had a literal default here and half a
+    -- derived one, so the field looked pre-answered in three flavors and empty in
+    -- three — the same prompt reading two different ways.
     ctx:prompt_text("Runtime Artifact:", "runtime_artifact", {
-        default = "target/*.jar",
-        help    = "Glob for the runnable jar the build produced, relative to the repo root.",
+        optional    = true,
+        placeholder = "target/*.jar",
+        help        = "Glob for the runnable jar the build produced, relative to the repo root. Leave blank to use target/*.jar.",
     })
+    if ctx:get("runtime_artifact") == nil or ctx:get("runtime_artifact") == "" then
+        ctx:set("runtime_artifact", "target/*.jar")
+    end
 end)
 
 context:page({ title = "Resources", key = "resources",
